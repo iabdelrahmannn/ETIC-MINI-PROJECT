@@ -1,0 +1,64 @@
+trigger:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  imageName: 'etic-app'
+  k8sNamespace: 'default'
+  deploymentName: 'etic-microservice'
+
+stages:
+  - stage: Build_and_Push
+    displayName: Build and Push Docker image
+    jobs:
+      - job: Build
+        displayName: Build and push image
+        steps:
+          - checkout: self
+
+          - task: Docker@2
+            displayName: Build and push to registry
+            inputs:
+              command: 'buildAndPush'
+              containerRegistry: 'docker-connection'
+              repository: '$(imageName)'
+              dockerfile: '**/Dockerfile'
+              tags: |
+                $(Build.BuildId)
+                latest
+
+  - stage: Deploy
+    displayName: Deploy to Kubernetes
+    dependsOn: Build_and_Push
+    condition: succeeded()
+    jobs:
+      - job: DeployJob
+        displayName: Deploy manifests
+        steps:
+          - checkout: self
+
+          - task: Bash@3
+            displayName: 'Replace image name in deployment manifest'
+            inputs:
+              targetType: 'inline'
+              script: |
+                IMAGE_TAG=$(Build.BuildId)
+                IMAGE_FULL=$(DOCKER_REGISTRY_SERVER)/$(imageName):$IMAGE_TAG
+                echo "Using image: $IMAGE_FULL"
+
+                sed -i "s|REPLACE_ME|$IMAGE_FULL|g" k8s/deployment.yaml
+                cat k8s/deployment.yaml
+
+          - task: KubernetesManifest@1
+            displayName: 'Deploy to Kubernetes cluster'
+            inputs:
+              action: 'deploy'
+              kubernetesServiceConnection: 'k8s-connection'
+              namespace: '$(k8sNamespace)'
+              manifests: |
+                k8s/deployment.yaml
+                k8s/service.yaml
