@@ -31,34 +31,28 @@ stages:
                 $(Build.BuildId)
                 latest
 
-  - stage: Deploy
-    displayName: Deploy to Kubernetes
-    dependsOn: Build_and_Push
-    condition: succeeded()
-    jobs:
-      - job: DeployJob
-        displayName: Deploy manifests
-        steps:
-          - checkout: self
-
-          - task: Bash@3
-            displayName: 'Replace image name in deployment manifest'
-            inputs:
-              targetType: 'inline'
-              script: |
-                IMAGE_TAG=$(Build.BuildId)
-                IMAGE_FULL=$(DOCKER_REGISTRY_SERVER)/$(imageName):$IMAGE_TAG
-                echo "Using image: $IMAGE_FULL"
-
-                sed -i "s|REPLACE_ME|$IMAGE_FULL|g" k8s/deployment.yaml
-                cat k8s/deployment.yaml
-
-          - task: KubernetesManifest@1
-            displayName: 'Deploy to Kubernetes cluster'
-            inputs:
-              action: 'deploy'
-              kubernetesServiceConnection: 'k8s-connection'
-              namespace: '$(k8sNamespace)'
-              manifests: |
-                k8s/deployment.yaml
-                k8s/service.yaml
+ # - stage: Deploy
+  #condition: succeeded()
+   # jobs:
+    #  - job: DeployJob
+     #   displayName: Deploy manifests
+      
+      #    - task: Bash@3
+       #     displayName: 'Replace image name in deployment manifest'
+        #    inputs:
+         #     targetType: 'inline'
+          ###    IMAGE_FULL=$(DOCKER_REGISTRY_SERVER)/$(imageName):$IMAGE_TAG
+             #   echo "Using image: $IMAGE_FULL"
+#
+ #               sed -i "s|REPLACE_ME|$IMAGE_FULL|g" k8s/deployment.yaml
+  #              cat k8s/deployment.yaml
+#
+ #         - task: KubernetesManifest@1
+  #          displayName: 'Deploy to Kubernetes cluster'
+   #         inputs:
+    #          action: 'deploy'
+     #         kubernetesServiceConnection: 'k8s-connection'
+      #        namespace: '$(k8sNamespace)'
+       #       manifests: |
+        #        k8s/deployment.yaml
+         #       k8s/service.yaml
