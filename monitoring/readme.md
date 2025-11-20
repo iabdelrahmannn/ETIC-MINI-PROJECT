@@ -1,166 +1,90 @@
-Complete end-to-end DevOps implementation for a Python microservice using:
-Docker – Kubernetes – Terraform – Azure DevOps – Prometheus – Grafana
+1. Prerequisites
 
-🧩 1. Project Structure
-project/
-│
-├── app/                          # Microservice code
-├── run.py                        # Application entry point
-├── requirements.txt              # Python dependencies
-├── Dockerfile                    # Docker container instructions
-│
-├── k8s/                          
-│   ├── deployment.yaml
-│   ├── service.yaml
-│   └── ingress.yaml (optional)
-│
-├── terraform/                    # Infrastructure as Code (AKS)
-│   ├── provider.tf
-│   ├── variables.tf
-│   ├── main.tf
-│   └── outputs.tf
-│
-├── .azure-pipelines.yml          # Azure DevOps pipeline
-│
-└── monitoring/README.md          # Monitoring stack documentation
+Before deploying the monitoring stack, ensure you have:
 
-🧱 2. Clone Repository
-git clone https://github.com/iabdelrahmannn/ETIC-MINI-PROJECT.git
+✔ Kubernetes Cluster
+✔ kubectl installed
+✔ Helm installed
 
-
-🐳 3. Dockerization
-Build Docker Image
-docker build -t etic-app:v1 .
-
-Run Container
-docker run --rm -p 5000:5000 etic-app:v1
-
-Test Application
-
-Open:
-
-http://localhost:5000
-
-☸️ 4. Kubernetes Deployment
-create deployment and service yaml files
-Apply Deployment & Service
-Apply all manifests:
-kubectl apply -f k8s/
-
-Check running pods:
-kubectl get pods
-
-Check service:
-kubectl get svc
-
-
-If using a cloud cluster (AKS/EKS/GKE) → an external LoadBalancer IP will appear.
-
-🌩 5. Terraform – Azure Kubernetes Service (AKS)
-
-Navigate to Terraform folder:
-
-cd terraform
-create main ,provider,variables & outputs tf files
-Initialize Terraform
-terraform init
-
-Validate configuration
-terraform validate
-
-Plan deployment
-terraform plan
-
-Apply deployment
-terraform apply tfplan
-
-Connect kubectl to AKS
-az aks get-credentials --resource-group <rg-name> --name <aks-name>
-
-Check cluster nodes
+Verify:
+kubectl version --client
 kubectl get nodes
 
-
-⚠️ Requires an active Azure subscription ( which i don't have currently)
-(Terraform code is ready even if not applied)
-
-🔄 6. CI/CD Pipeline – Azure DevOps
-1. Create Pipeline
-
-Azure DevOps → Pipelines → New Pipeline → GitHub → Existing YAML → .azure-pipelines.yml
-
-2. Create Service Connections
-Docker registry
-
-Azure DevOps → Project Settings → Service Connections → New → Docker Registry
-Name it:
-
-docker-connection
+helm version
 
 
-⚙️ 7. Azure DevOps Pipeline Stages
-Trigger on main branch:
-trigger:
-- main
+2. Add Helm Repository
 
-Build & Push Docker Image
+The monitoring stack comes from the official Prometheus community repository.
 
-(Already included in .azure-pipelines.yml)
-
-Deployment
-
-Kubernetes deploy stage is prepared but disabled until a real cluster exists.
-
-📊 8. Monitoring – Prometheus & Grafana
-
-Navigate to monitoring folder:
-
-cd monitoring
-
-Add Helm Repo
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm repo update
 
-Create monitoring namespace
+3. Create Monitoring Namespace
+
 kubectl create namespace monitoring
 
-Install monitoring stack
-helm install monitoring prometheus-community/kube-prometheus-stack -n monitoring
 
-Check monitoring pods
+validate:
+
+kubectl get ns
+
+4. Install kube-prometheus-stack
+
+Install: Prometheus Alertmanager Grafana
+
+use pre-build dashboard
+
+command : helm install monitoring prometheus-community/kube-prometheus-stack \
+  --namespace monitoring
+
+
+5. Validate Deployment
+
+Check Pods:
+
 kubectl get pods -n monitoring
 
-Forward Grafana port
+
+Check Services:
+
+kubectl get svc -n monitoring
+
+6. Access Grafana Dashboard
+
+Expose Grafana locally:
+
 kubectl port-forward svc/monitoring-grafana -n monitoring 3000:80
 
-Access Grafana
 
-Open:
+Then open in the browser:
 
 http://localhost:3000
 
+After login: Go to Dashboards → Browse
 
-Default credentials:
 
-admin
-prom-operator
 
-🧽 9. Cleanup (Optional)
-Remove monitoring stack
-helm uninstall monitoring -n monitoring
-kubectl delete namespace monitoring
+7. Prometheus UI
 
-Remove Kubernetes resources
-kubectl delete -f k8s/
+Expose Prometheus dashboard:
 
-Destroy AKS via Terraform
-terraform destroy
+kubectl port-forward svc/monitoring-kube-prometheus-prometheus -n monitoring 9090
 
-🎯 10. Summary
 
-✔ Microservice containerized with Docker
-✔ Kubernetes manifests for deployment & service
-✔ Terraform IaC for AKS
-✔ Azure DevOps CI/CD pipeline (Build + Push + Deploy ready)
-✔ Full monitoring stack (Prometheus + Grafana)
-✔ Complete documentation
+Open:
+
+👉 http://localhost:9090
+
+You can query metrics here.
+
+8. Alertmanager UI (Optional)
+
+Expose Alertmanager:
+
+kubectl port-forward svc/monitoring-kube-prometheus-alertmanager -n monitoring 9093
+
+
+Open:
+
+http://localhost:9093
